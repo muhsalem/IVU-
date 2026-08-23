@@ -1,0 +1,6 @@
+{
+  "name": "Islamic Value Unit (IVU) Platform",
+  "description": "وحدة القيمة الإسلامية - منصة عالمية لحفظ القوة الشرائية وتقييم العقود والديون وفق معايير اقتصادية وشرعية متكاملة",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
