@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollText, Copy, Check, Printer, ShieldCheck, FileCheck, Building, Landmark, FileText } from 'lucide-react';
+import { ScrollText, Copy, Check, Printer, ShieldCheck, FileCheck, Building, Landmark, FileText, Cloud, CheckCircle2, AlertCircle } from 'lucide-react';
+import { uploadFileToDrive, getOrCreateIvuFolder, getAccessToken, googleSignIn } from '../services/googleDriveService';
 
 type ContractType = 'qard' | 'waqf' | 'construction' | 'sukuk';
 
@@ -24,6 +25,8 @@ export const ContractGenerator: React.FC = () => {
   const [currency, setCurrency] = useState('SAR (ريال سعودي)');
   const [durationYears, setDurationYears] = useState('5 سنوات');
   const [copied, setCopied] = useState(false);
+  const [isSavingDrive, setIsSavingDrive] = useState(false);
+  const [driveSaveStatus, setDriveSaveStatus] = useState<string | null>(null);
 
   const templates: Record<ContractType, ContractTemplate> = {
     qard: {
@@ -189,6 +192,34 @@ export const ContractGenerator: React.FC = () => {
     window.print();
   };
 
+  const handleSaveToDrive = async () => {
+    setIsSavingDrive(true);
+    setDriveSaveStatus(null);
+    try {
+      let token = await getAccessToken();
+      if (!token) {
+        const loginRes = await googleSignIn();
+        token = loginRes?.accessToken || null;
+      }
+      if (!token) {
+        throw new Error('يرجى تسجيل الدخول بحساب Google أولاً');
+      }
+
+      const folderId = await getOrCreateIvuFolder();
+      const sanitizedTitle = contractTitle.replace(/[/\\?%*:|"<>]/g, '-').trim();
+      const filename = `${sanitizedTitle}_${Date.now()}.txt`;
+      await uploadFileToDrive(filename, contractClauseText, 'text/plain', folderId);
+      setDriveSaveStatus('تم الحفظ بنجاح في Google Drive بمجلد IVU_Standard_Archive');
+      setTimeout(() => setDriveSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Drive save error:', err);
+      setDriveSaveStatus(err?.message || 'فشل الحفظ في Google Drive');
+      setTimeout(() => setDriveSaveStatus(null), 4000);
+    } finally {
+      setIsSavingDrive(false);
+    }
+  };
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -316,7 +347,17 @@ export const ContractGenerator: React.FC = () => {
                 معاينة صيغة العقد الشرعي واللوائح (مطبوع)
               </h3>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleSaveToDrive}
+                  disabled={isSavingDrive}
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
+                  title="حفظ العقد مباشرة في Google Drive"
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${isSavingDrive ? 'animate-bounce' : ''}`} />
+                  <span>{isSavingDrive ? 'جارِ الحفظ بالسحابة...' : 'حفظ في Google Drive'}</span>
+                </button>
+
                 <button
                   onClick={handleCopy}
                   className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
@@ -334,6 +375,13 @@ export const ContractGenerator: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {driveSaveStatus && (
+              <div className="p-2.5 bg-blue-950/60 border border-blue-500/30 text-blue-300 rounded-xl text-xs flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{driveSaveStatus}</span>
+              </div>
+            )}
 
             {/* Contract Paper Box */}
             <div className="bg-slate-950 p-6 sm:p-8 rounded-xl border border-slate-800 font-serif text-xs sm:text-sm text-slate-200 whitespace-pre-wrap leading-relaxed shadow-inner">

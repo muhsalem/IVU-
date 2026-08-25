@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { IvuCalculator } from './components/IvuCalculator';
+import { GoogleDriveHub } from './components/GoogleDriveHub';
 import { OffshoreFxExchangeHub } from './components/OffshoreFxExchangeHub';
 import { PlatformPresentation } from './components/PlatformPresentation';
 import { IvuTrendsDashboard } from './components/IvuTrendsDashboard';
@@ -33,6 +34,7 @@ export default function App() {
         {/* Main Content Stage */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeTab === 'calculator' && <IvuCalculator />}
+          {activeTab === 'google_drive' && <GoogleDriveHub />}
           {activeTab === 'offshore_fx' && <OffshoreFxExchangeHub />}
           {activeTab === 'presentation' && <PlatformPresentation />}
           {activeTab === 'trends_dashboard' && <IvuTrendsDashboard />}

@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { calculateIvuContractValue, SUPPORTED_CURRENCIES } from '../utils/ivuMath';
 import { exportCalculationToPdf, exportCalculationToExcel } from '../utils/exportPdfExcel';
+import { uploadFileToDrive, getOrCreateIvuFolder, getAccessToken, googleSignIn } from '../services/googleDriveService';
 import { ContractType } from '../types';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Calculator, Download, FileSpreadsheet, Scale, ArrowLeftRight, CheckCircle2, ShieldAlert, Globe } from 'lucide-react';
+import { Calculator, Download, FileSpreadsheet, Scale, ArrowLeftRight, CheckCircle2, ShieldAlert, Globe, Cloud } from 'lucide-react';
 
 export const IvuCalculator: React.FC = () => {
   const [startDateYear, setStartDateYear] = useState<number>(2010);
@@ -11,6 +12,8 @@ export const IvuCalculator: React.FC = () => {
   const [nominalAmount, setNominalAmount] = useState<number>(100000);
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('SAR');
   const [contractType, setContractType] = useState<ContractType>('qard_hasan');
+  const [isSavingDrive, setIsSavingDrive] = useState<boolean>(false);
+  const [driveStatus, setDriveStatus] = useState<string | null>(null);
 
   const selectedCurrency = SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrencyCode) || SUPPORTED_CURRENCIES[0];
 
@@ -30,8 +33,53 @@ export const IvuCalculator: React.FC = () => {
     { name: 'معدلة بـ IVU', amount: result.ivuValue, fill: '#f59e0b' },
     { name: 'معيار الذهب', amount: result.goldValue, fill: '#eab308' },
     { name: 'مؤشر CPI', amount: result.cpiValue, fill: '#10b981' },
-    { name: 'سلة SDR', amount: result.currencyBasketValue, fill: '#3b82f6' }
+    { name: 'سعر الصرف الخارجي', amount: result.currencyBasketValue, fill: '#3b82f6' }
   ];
+
+  const handleSaveCalculationToDrive = async () => {
+    setIsSavingDrive(true);
+    setDriveStatus(null);
+    try {
+      let token = await getAccessToken();
+      if (!token) {
+        const loginRes = await googleSignIn();
+        token = loginRes?.accessToken || null;
+      }
+      if (!token) {
+        throw new Error('يرجى تسجيل الدخول بحساب Google أولاً');
+      }
+
+      const folderId = await getOrCreateIvuFolder();
+      const reportPayload = JSON.stringify({
+        type: 'IVU_CALCULATION_REPORT',
+        contractType: result.contractType,
+        currency: result.currency,
+        nominalAmount: result.nominalAmount,
+        startDate: result.startDate,
+        endDate: result.endDate,
+        ivuAdjustedValue: result.ivuValue,
+        ivuDifference: result.ivuDifferenceAmount,
+        purchasingPowerChangePercent: result.ivuChangePercent,
+        goldEquivalentValue: result.goldValue,
+        cpiAdjustedValue: result.cpiValue,
+        sdrAdjustedValue: result.currencyBasketValue,
+        shariahGuidance: result.shariahGuidanceAr,
+        aaoifiReference: result.aaoifiReferenceAr,
+        savedAt: new Date().toISOString()
+      }, null, 2);
+
+      const filename = `تقرير-حساب-IVU-${result.currency}-${result.startDate}-${result.endDate}_${Date.now()}.json`;
+      await uploadFileToDrive(filename, reportPayload, 'application/json', folderId);
+      setDriveStatus('تم حفظ تقرير الحساب بنجاح في Google Drive بمجلد IVU_Standard_Archive');
+      setTimeout(() => setDriveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Drive save error:', err);
+      setDriveStatus(err?.message || 'فشل الحفظ في Google Drive');
+      setTimeout(() => setDriveStatus(null), 4000);
+    } finally {
+      setIsSavingDrive(false);
+    }
+  };
 
   return (
     <div className="space-y-10">
@@ -166,22 +214,40 @@ export const IvuCalculator: React.FC = () => {
           </div>
 
           {/* Export Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => exportCalculationToPdf(result)}
-              className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 py-3 rounded-xl text-xs font-semibold transition-all shadow"
-            >
-              <Download className="w-4 h-4 text-amber-400" />
-              <span>تقرير PDF</span>
-            </button>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => exportCalculationToPdf(result)}
+                className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 py-3 rounded-xl text-xs font-semibold transition-all shadow"
+              >
+                <Download className="w-4 h-4 text-amber-400" />
+                <span>تقرير PDF</span>
+              </button>
+
+              <button
+                onClick={() => exportCalculationToExcel(result)}
+                className="flex items-center justify-center gap-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/80 py-3 rounded-xl text-xs font-semibold transition-all shadow"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>ملف Excel</span>
+              </button>
+            </div>
 
             <button
-              onClick={() => exportCalculationToExcel(result)}
-              className="flex items-center justify-center gap-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/80 py-3 rounded-xl text-xs font-semibold transition-all shadow"
+              onClick={handleSaveCalculationToDrive}
+              disabled={isSavingDrive}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>ملف Excel</span>
+              <Cloud className={`w-4 h-4 ${isSavingDrive ? 'animate-bounce' : ''}`} />
+              <span>{isSavingDrive ? 'جارِ الحفظ في Drive...' : 'حفظ التقرير في Google Drive'}</span>
             </button>
+
+            {driveStatus && (
+              <div className="p-2.5 bg-blue-950/80 border border-blue-500/40 text-blue-200 rounded-xl text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{driveStatus}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -224,7 +290,7 @@ export const IvuCalculator: React.FC = () => {
                     <td className="p-3 font-mono text-slate-300">+{result.cpiDifferenceAmount.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-slate-300">سلة حقوق السحب (SDR Currency Basket)</td>
+                    <td className="p-3 text-slate-300">سعر صرف العملة الخارجية وقوته (Offshore FX Rate & Strength)</td>
                     <td className="p-3 font-mono">{result.currencyBasketValue.toLocaleString(undefined, {maximumFractionDigits:2})} {selectedCurrency.symbol}</td>
                     <td className="p-3 font-mono">+{(result.currencyBasketValue / result.nominalAmount * 100 - 100).toFixed(2)}%</td>
                     <td className="p-3 font-mono text-slate-300">+{(result.currencyBasketValue - result.nominalAmount).toLocaleString(undefined, {maximumFractionDigits:2})}</td>

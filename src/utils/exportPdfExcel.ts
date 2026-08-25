@@ -13,7 +13,7 @@ export function exportCalculationToExcel(result: CalculationResult) {
     ['القيمة المعدلة وفق وحدة IVU', result.ivuValue.toFixed(2)],
     ['القيمة المعدلة وفق الذهب', result.goldValue.toFixed(2)],
     ['القيمة المعدلة وفق التضخم CPI', result.cpiValue.toFixed(2)],
-    ['القيمة المعدلة وفق سلة العملات / SDR', result.currencyBasketValue.toFixed(2)],
+    ['القيمة المعدلة وفق سعر صرف العملة الخارجية وقوته', result.currencyBasketValue.toFixed(2)],
     ['نسبة التغير في IVU %', `${result.ivuChangePercent.toFixed(2)}%`],
     ['نسبة التضخم واسميته %', `${result.inflationLossPercent.toFixed(2)}%`],
     ['فرق القيمة (مبلغ التعديل العادل بـ IVU)', result.ivuDifferenceAmount.toFixed(2)],
@@ -51,7 +51,7 @@ export function exportCalculationToPdf(result: CalculationResult) {
   doc.text(`- IVU Adjusted Value: ${result.ivuValue.toLocaleString(undefined, {maximumFractionDigits: 2})} ${result.currency} (${result.ivuChangePercent > 0 ? '+' : ''}${result.ivuChangePercent.toFixed(2)}%)`, 20, 95);
   doc.text(`- Gold Standard Adjusted: ${result.goldValue.toLocaleString(undefined, {maximumFractionDigits: 2})} ${result.currency} (${result.goldChangePercent > 0 ? '+' : ''}${result.goldChangePercent.toFixed(2)}%)`, 20, 105);
   doc.text(`- CPI Inflation Adjusted: ${result.cpiValue.toLocaleString(undefined, {maximumFractionDigits: 2})} ${result.currency}`, 20, 115);
-  doc.text(`- SDR Currency Basket Adjusted: ${result.currencyBasketValue.toLocaleString(undefined, {maximumFractionDigits: 2})} ${result.currency}`, 20, 125);
+  doc.text(`- Offshore FX Rate & Strength Adjusted: ${result.currencyBasketValue.toLocaleString(undefined, {maximumFractionDigits: 2})} ${result.currency}`, 20, 125);
 
   doc.line(15, 135, 195, 135);
   doc.setFontSize(13);

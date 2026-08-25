@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, Sparkles, ShieldCheck, Calculator, LineChart, BookOpen, ScrollText, Layers, FileCode, Award, Coins, TrendingUp, Presentation, Globe } from 'lucide-react';
+import { Scale, Sparkles, ShieldCheck, Calculator, LineChart, BookOpen, ScrollText, Layers, FileCode, Award, Coins, TrendingUp, Presentation, Globe, Cloud } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -10,6 +10,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenAdvisor }) => {
   const navItems = [
     { id: 'calculator', labelAr: 'الآلة الحاسبة الحية', icon: Calculator, badgeAr: 'تفاعلي' },
+    { id: 'google_drive', labelAr: 'سحابة Google Drive', icon: Cloud, badgeAr: 'Sync' },
     { id: 'offshore_fx', labelAr: 'سعر الصرف خارج الدولة', icon: Globe, badgeAr: 'Offshore FX' },
     { id: 'presentation', labelAr: 'العرض التقديمي للمنصة', icon: Presentation, badgeAr: 'سلايدات' },
     { id: 'trends_dashboard', labelAr: 'مؤشرات النمو والتضخم', icon: TrendingUp, badgeAr: 'مباشر' },
